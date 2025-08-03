@@ -1,0 +1,10 @@
+CREATE TABLE users (
+    id TEXT PRIMARY KEY
+);
+
+CREATE TABLE files (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    u_id TEXT NOT NULL,
+    FOREIGN KEY (u_id) REFERENCES users(id) ON DELETE CASCADE
+);

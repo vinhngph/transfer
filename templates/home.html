@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>transfer</title>
+</head>
+
+<body>
+    <div class="upload-files">
+        <input type="file" name="f" id="files-input" multiple>
+        <button id="submit-files">UPLOAD</button>
+    </div>
+
+    <div class="files">
+        <ul class="file-list">
+            {% for file in files %}
+            <li><a href="/file?id={{ file.id }}">{{ file.name }}</a><button onclick="copyLink('{{ file.id }}')">
+                    COPY LINK
+                </button></li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+        function uploadFiles() {
+            const input = document.getElementById("files-input")
+            const files = input.files
+
+            for (let i = 0; i < files.length; i++) {
+                const formData = new FormData()
+                formData.append("f", files[i])
+
+                fetch("/file", {
+                    method: "POST",
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const uploadedFiles = document.querySelector(".file-list")
+
+                        const newA = document.createElement("a")
+                        newA.href = "/file?id=" + data.id
+                        newA.text = data.name
+
+                        const newButton = document.createElement("button")
+                        newButton.onclick = copyLink(data.id)
+                        newButton.textContent = "COPY LINK"
+
+                        const newLi = document.createElement("li")
+                        newLi.appendChild(newA)
+                        newLi.appendChild(newButton)
+
+                        uploadedFiles.appendChild(newLi)
+                    })
+                    .catch(error => console.error("error:", error))
+            }
+            input.value = ""
+        }
+        document.getElementById("submit-files").addEventListener("click", uploadFiles)
+
+        function copyLink(id) {
+            const link = window.location.origin + "/file?id=" + id
+
+            navigator.clipboard.writeText(link)
+        }
+    </script>
+</body>
+
+</html>
