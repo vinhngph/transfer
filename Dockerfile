@@ -9,6 +9,6 @@ COPY . .
 RUN ./venv/bin/python -m pip install --no-cache-dir -r requirements.txt
 RUN sqlite3 database.db < schema.sql
 
-EXPOSE 5000
+EXPOSE 8000
 
-CMD [ "./venv/bin/python", "run.py" ]
+CMD [ "bash", "-c", "./venv/bin/gunicorn -w $((2 * $(nproc) + 1)) -b 0.0.0.0:8000 app:app" ]

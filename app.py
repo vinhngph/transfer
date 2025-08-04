@@ -77,9 +77,4 @@ def home():
             samesite="Strict",
             max_age=3600
         )
-    print(files)
     return response
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
