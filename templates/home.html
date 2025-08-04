@@ -5,66 +5,221 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>transfer</title>
+
+    <style>
+        body {
+            background-color: #121212;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .drop-area {
+            border: 2px dashed #00ff73;
+            border-radius: 6px;
+            padding: 40px;
+            text-align: center;
+            color: #00ff73;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .drop-area:hover {
+            background: #e9f5ff49;
+        }
+
+        .drop-area.dragover {
+            background: #e9f5ff49;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 30px;
+        }
+
+        .file-list li {
+            border: 1px solid #00ff73;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .file-info {
+            color: #fff;
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        progress {
+            width: 100%;
+            height: 8px;
+            margin-top: 5px;
+        }
+
+        button {
+            margin-left: 5px;
+            padding: 6px 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #00ffea;
+            color: #000000;
+            transition: background 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="upload-files">
+    <div class="drop-area" id="drop-area">
+        Click or drag files here
         <input type="file" name="f" id="files-input" multiple>
-        <button id="submit-files">UPLOAD</button>
     </div>
 
     <div class="files">
         <ul class="file-list">
             {% for file in files %}
-            <li><a href="/file?id={{ file.id }}">{{ file.name }}</a><button onclick="copyLink('{{ file.id }}')">
-                    COPY LINK
-                </button></li>
+            <li>
+                <div class="file-info">
+                    <div>{{ file.name }}</div>
+                </div>
+                <button class="download-btn" file-id="{{ file.id }}">DOWNLOAD</button>
+                <button class="share-btn" file-id="{{ file.id }}">SHARE</button>
+            </li>
             {% endfor %}
         </ul>
     </div>
 
     <script>
-        function uploadFiles() {
-            const input = document.getElementById("files-input")
-            const files = input.files
+        const dropArea = document.getElementById("drop-area")
+        const fileInput = document.getElementById("files-input")
 
-            for (let i = 0; i < files.length; i++) {
+        dropArea.addEventListener("click", () => {
+            fileInput.click()
+        })
+
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault()
+            dropArea.classList.add("dragover")
+        })
+
+        dropArea.addEventListener("dragleave", (e) => {
+            dropArea.classList.remove("dragover")
+        })
+
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault()
+            dropArea.classList.remove("dropover")
+            const files = e.dataTransfer.files
+            handleFiles(files)
+        })
+
+        fileInput.addEventListener("change", (e) => {
+            handleFiles(e.target.files)
+            e.target.value = ""
+        })
+
+        function handleFiles(files) {
+            for (const file of files) {
+                const fileList = document.querySelector(".file-list")
+
+                const newDiv = document.createElement("div")
+                newDiv.className = "file-info"
+
+                const newDivDiv = document.createElement("div")
+                newDivDiv.textContent = file.name
+                newDiv.appendChild(newDivDiv)
+
+                const progressBar = document.createElement("progress")
+                progressBar.value = 0
+                progressBar.max = 100
+
+                const newDownBtn = document.createElement("button")
+                newDownBtn.textContent = "DOWNLOAD"
+                newDownBtn.className = "download-btn"
+                newDownBtn.disabled = true
+                newDownBtn.style.display = "none"
+
+                const newShareBtn = document.createElement("button")
+                newShareBtn.textContent = "SHARE"
+                newShareBtn.className = "share-btn"
+                newShareBtn.disabled = true
+                newShareBtn.style.display = "none"
+
+                const newLi = document.createElement("li")
+                newLi.appendChild(newDiv)
+                newLi.appendChild(progressBar)
+                newLi.appendChild(newDownBtn)
+                newLi.appendChild(newShareBtn)
+
+                fileList.appendChild(newLi)
+
                 const formData = new FormData()
-                formData.append("f", files[i])
+                formData.append("f", file)
 
-                fetch("/file", {
-                    method: "POST",
-                    body: formData
+                const xhr = new XMLHttpRequest()
+                xhr.open("POST", "/file")
+
+                xhr.upload.addEventListener("progress", (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100
+                        progressBar.value = percent
+                    }
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        const uploadedFiles = document.querySelector(".file-list")
 
-                        const newA = document.createElement("a")
-                        newA.href = "/file?id=" + data.id
-                        newA.text = data.name
+                xhr.onload = () => {
+                    if (xhr.status === 201) {
+                        const data = JSON.parse(xhr.responseText)
 
-                        const newButton = document.createElement("button")
-                        newButton.onclick = copyLink(data.id)
-                        newButton.textContent = "COPY LINK"
+                        newDownBtn.disabled = false
+                        newDownBtn.style.display = "block"
+                        newDownBtn.setAttribute("file-id", data.id)
 
-                        const newLi = document.createElement("li")
-                        newLi.appendChild(newA)
-                        newLi.appendChild(newButton)
+                        newShareBtn.disabled = false
+                        newShareBtn.style.display = "block"
+                        newShareBtn.setAttribute("file-id", data.id)
 
-                        uploadedFiles.appendChild(newLi)
-                    })
-                    .catch(error => console.error("error:", error))
+                        progressBar.remove()
+                    } else {
+                        console.error("upload failed")
+                    }
+                }
+
+                xhr.onerror = () => {
+                    console.error("upload error")
+                }
+
+                xhr.send(formData)
             }
-            input.value = ""
         }
-        document.getElementById("submit-files").addEventListener("click", uploadFiles)
 
-        function copyLink(id) {
-            const link = window.location.origin + "/file?id=" + id
-
-            navigator.clipboard.writeText(link)
-        }
+        document.querySelector(".file-list").addEventListener("click", (e) => {
+            const link = window.location.origin + "/file?id=" + e.target.getAttribute("file-id")
+            if (e.target.classList.contains("download-btn")) {
+                window.location.href = link
+            }
+            else if (e.target.classList.contains("share-btn")) {
+                navigator.clipboard.writeText(link)
+            }
+        })
     </script>
 </body>
 

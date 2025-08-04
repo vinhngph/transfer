@@ -12,10 +12,6 @@ app = Flask(__name__)
 
 @app.route("/file", methods=["GET", "POST"])
 def file():
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        return jsonify({"msg": "must login"}), 406
-
     if request.method == "GET":
         id: str = request.args["id"]
 
@@ -33,15 +29,15 @@ def file():
 
         id: str = file_data[0]["id"]
         name: str = file_data[0]["name"]
-        u_id: str = file_data[0]["u_id"]
-        if user_id != u_id:
-            return jsonify({"msg": "forbidden"}), 403
 
         return send_from_directory(storage_dir, id, as_attachment=False, download_name=name)
 
     elif request.method == "POST":
-        file: FileStorage = request.files["f"]
+        user_id = request.cookies.get("user_id")
+        if not user_id:
+            return jsonify({"msg": "missing user_id"}), 400
 
+        file: FileStorage = request.files["f"]
         if not file:
             return jsonify({"msg": "invalid file"}), 400
 
