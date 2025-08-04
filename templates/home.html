@@ -74,7 +74,15 @@
             cursor: pointer;
             background: #00ffea;
             color: #000000;
-            transition: background 0.2s;
+            transition: background 0.3s;
+        }
+
+        button.success {
+            background-color: greenyellow;
+        }
+
+        button.fail {
+            background-color: red;
         }
 
         button:hover:not(:disabled) {
@@ -211,6 +219,26 @@
             }
             else if (e.target.classList.contains("copy-btn")) {
                 navigator.clipboard.writeText(link)
+                    .then(() => {
+                        const oldText = e.target.textContent
+                        e.target.classList.add("success")
+                        e.target.textContent = "COPIED"
+
+                        setTimeout(() => {
+                            e.target.classList.remove("success")
+                            e.target.textContent = oldText
+                        }, 1000);
+                    })
+                    .catch(() => {
+                        const oldText = e.target.textContent
+                        e.target.classList.add("fail")
+                        e.target.textContent = "FAIL"
+
+                        setTimeout(() => {
+                            e.target.classList.remove("fail")
+                            e.target.textContent = oldText
+                        }, 1000);
+                    })
             }
         })
     </script>
