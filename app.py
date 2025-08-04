@@ -68,6 +68,7 @@ def home():
     rows = db.execute("SELECT id FROM users WHERE id=?", (user_id,))
     if not user_id or not rows or isinstance(rows, int) or len(rows) != 1:
         user_id = str(uuid.uuid4())
+        # print(user_id)
         db.execute("INSERT INTO users (id) VALUES (?)", (user_id,))
         response.set_cookie(
             "user_id",
@@ -78,3 +79,6 @@ def home():
             max_age=3600
         )
     return response
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=5000)
