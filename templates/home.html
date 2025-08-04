@@ -96,15 +96,17 @@
 
     <div class="files">
         <ul class="file-list">
+            {% if files%}
             {% for file in files %}
             <li>
                 <div class="file-info">
                     <div>{{ file.name }}</div>
                 </div>
                 <button class="download-btn" file-id="{{ file.id }}">DOWNLOAD</button>
-                <button class="share-btn" file-id="{{ file.id }}">SHARE</button>
+                <button class="copy-btn" file-id="{{ file.id }}">COPY</button>
             </li>
             {% endfor %}
+            {% endif%}
         </ul>
     </div>
 
@@ -152,23 +154,9 @@
                 progressBar.value = 0
                 progressBar.max = 100
 
-                const newDownBtn = document.createElement("button")
-                newDownBtn.textContent = "DOWNLOAD"
-                newDownBtn.className = "download-btn"
-                newDownBtn.disabled = true
-                newDownBtn.style.display = "none"
-
-                const newShareBtn = document.createElement("button")
-                newShareBtn.textContent = "SHARE"
-                newShareBtn.className = "share-btn"
-                newShareBtn.disabled = true
-                newShareBtn.style.display = "none"
-
                 const newLi = document.createElement("li")
                 newLi.appendChild(newDiv)
                 newLi.appendChild(progressBar)
-                newLi.appendChild(newDownBtn)
-                newLi.appendChild(newShareBtn)
 
                 fileList.appendChild(newLi)
 
@@ -189,13 +177,18 @@
                     if (xhr.status === 201) {
                         const data = JSON.parse(xhr.responseText)
 
-                        newDownBtn.disabled = false
-                        newDownBtn.style.display = "block"
+                        const newDownBtn = document.createElement("button")
+                        newDownBtn.textContent = "DOWNLOAD"
+                        newDownBtn.className = "download-btn"
                         newDownBtn.setAttribute("file-id", data.id)
 
-                        newShareBtn.disabled = false
-                        newShareBtn.style.display = "block"
-                        newShareBtn.setAttribute("file-id", data.id)
+                        const newCopytBtn = document.createElement("button")
+                        newCopytBtn.textContent = "COPY"
+                        newCopytBtn.className = "copy-btn"
+                        newCopytBtn.setAttribute("file-id", data.id)
+
+                        newLi.appendChild(newDownBtn)
+                        newLi.appendChild(newCopytBtn)
 
                         progressBar.remove()
                     } else {
@@ -216,7 +209,7 @@
             if (e.target.classList.contains("download-btn")) {
                 window.location.href = link
             }
-            else if (e.target.classList.contains("share-btn")) {
+            else if (e.target.classList.contains("copy-btn")) {
                 navigator.clipboard.writeText(link)
             }
         })
