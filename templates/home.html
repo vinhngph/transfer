@@ -143,19 +143,25 @@
             for (const file of files) {
                 const fileList = document.querySelector(".file-list")
 
-                const newDiv = document.createElement("div")
-                newDiv.className = "file-info"
+                const newFileInfo = document.createElement("div")
+                newFileInfo.className = "file-info"
 
-                const newDivDiv = document.createElement("div")
-                newDivDiv.textContent = file.name
-                newDiv.appendChild(newDivDiv)
+                const newFileName = document.createElement("div")
+                newFileName.textContent = file.name
+
+                const timeLeftDiv = document.createElement("div")
+                timeLeftDiv.className = "time-estimating"
+                timeLeftDiv.textContent = "Estimating..."
+
+                newFileInfo.appendChild(newFileName)
+                newFileInfo.appendChild(timeLeftDiv)
 
                 const progressBar = document.createElement("progress")
                 progressBar.value = 0
                 progressBar.max = 100
 
                 const newLi = document.createElement("li")
-                newLi.appendChild(newDiv)
+                newLi.appendChild(newFileInfo)
                 newLi.appendChild(progressBar)
 
                 fileList.appendChild(newLi)
@@ -166,10 +172,28 @@
                 const xhr = new XMLHttpRequest()
                 xhr.open("POST", "/file")
 
+                const startTime = Date.now()
+
                 xhr.upload.addEventListener("progress", (e) => {
                     if (e.lengthComputable) {
                         const percent = (e.loaded / e.total) * 100
                         progressBar.value = percent
+
+                        const elapsedTime = (Date.now() - startTime) / 1000
+                        const uploadSpeed = e.loaded / elapsedTime
+                        const remainingBytes = e.total - e.loaded
+                        const timeLeft = remainingBytes / uploadSpeed
+
+                        if (timeLeft >= 0 && isFinite(timeLeft)) {
+                            const hours = Math.floor(timeLeft / 3600)
+                            const minutes = Math.floor((timeLeft % 3600) / 60)
+                            const seconds = Math.floor(timeLeft % 60)
+
+                            const padded = (num) => String(num).padStart(2, '0')
+                            const formated = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
+
+                            timeLeftDiv.textContent = formated
+                        }
                     }
                 })
 
@@ -191,6 +215,7 @@
                         newLi.appendChild(newCopytBtn)
 
                         progressBar.remove()
+                        timeLeftDiv.remove()
                     } else {
                         console.error("upload failed")
                     }
