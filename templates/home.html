@@ -623,14 +623,6 @@
             e.target.value = ""
         })
 
-        let isOffline = !navigator.onLine
-        window.addEventListener("offline", () => {
-            isOffline = true
-        })
-        window.addEventListener("online", () => {
-            isOffline = false
-        })
-
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes'
             const k = 1024
@@ -639,7 +631,7 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
         }
 
-        function uploadFile(file, progressContainer, statusDiv, cancelButton, newLi) {
+        function uploadFile(file, statusDiv, statusIcon, statusDescription, progressContainer, progressFill, uploadPercentage, uploadSpeed, cancelButton, newLi) {
             const CHUNK_SIZE = 10 * 1024 * 1024
 
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
@@ -648,7 +640,6 @@
             let currentChunk = 0
             let uploadedBytes = 0
             let retryCount = 0
-            const MAX_RETRY = 5
 
             const startTime = Date.now()
             let abortController = null
@@ -656,23 +647,7 @@
             // Add upload card styling
             newLi.classList.add('upload-card')
 
-            // Create modern progress elements
-            const progressBar = progressContainer.querySelector('.progress-bar')
-            const progressFill = progressBar.querySelector('.progress-fill')
-            const uploadStats = progressContainer.querySelector('.upload-stats')
-            const percentageSpan = uploadStats.querySelector('.upload-percentage')
-            const speedSpan = uploadStats.querySelector('.upload-speed')
-
             function nextChunk() {
-                if (isOffline) {
-                    statusDiv.innerHTML = `
-                        <div class="status-icon status-error">⚠</div>
-                        <span>Connection lost - Reconnecting...</span>
-                    `
-                    setTimeout(nextChunk, 1000)
-                    return
-                }
-
                 const start = currentChunk * CHUNK_SIZE
                 const end = Math.min(start + CHUNK_SIZE, file.size)
                 const chunk = file.slice(start, end)
@@ -689,9 +664,10 @@
 
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
+                        retryCount = 0
                         const percent = ((uploadedBytes + e.loaded) / file.size) * 100
                         progressFill.style.width = percent + '%'
-                        percentageSpan.textContent = Math.round(percent) + '%'
+                        uploadPercentage.textContent = Math.round(percent) + '%'
 
                         const elapsed = (Date.now() - startTime) / 1000
                         const speed = (uploadedBytes + e.loaded) / elapsed
@@ -707,12 +683,11 @@
                             const formatted = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
 
                             const speedFormatted = formatFileSize(speed) + '/s'
-                            speedSpan.textContent = `${speedFormatted} • ${formatted} left`
+                            uploadSpeed.textContent = `${speedFormatted} • ${formatted} left`
 
-                            statusDiv.innerHTML = `
-                                <div class="status-icon status-uploading">⬆</div>
-                                <span style="color: white">Uploading chunk ${currentChunk + 1} of ${totalChunks}</span>
-                            `
+                            statusIcon.className = "status-icon status-uploading"
+                            statusIcon.textContent = "⬆"
+                            statusDescription.textContent = `${formatFileSize(uploadedBytes + e.loaded)} / ${formatFileSize(file.size)}`
                         }
                     }
                 }
@@ -743,21 +718,19 @@
                             actionsDiv.appendChild(newDownBtn)
                             actionsDiv.appendChild(newCopyBtn)
 
-                            // Update status to complete
-                            statusDiv.innerHTML = `
-                                <div class="status-icon status-complete">✓</div>
-                                <span>Upload complete • Ready for download</span>
-                            `
+                            statusIcon.className = "status-icon status-complete"
+                            statusIcon.textContent = "✓"
+                            statusDescription.textContent = "Upload complete • Ready for download"
 
                             // Animate completion
                             progressFill.style.width = '100%'
-                            percentageSpan.textContent = '100%'
-                            speedSpan.textContent = 'Complete'
+                            uploadPercentage.textContent = '100%'
+                            uploadSpeed.textContent = 'Complete'
 
                             setTimeout(() => {
                                 progressContainer.remove()
                                 cancelButton.remove()
-                                statusDiv.textContent = 'Ready for download'
+                                statusDiv.textContent = "Ready for download"
                                 newLi.appendChild(actionsDiv)
                             }, 2000)
                         }
@@ -766,34 +739,36 @@
                     }
                 }
 
-                xhr.onerror = () => {
-                    handleChunkError()
+                xhr.onerror = (e) => {
+                    setTimeout(() => {
+                        if (!navigator.onLine) {
+                            statusIcon.className = "status-icon status-error"
+                            statusIcon.textContent = "⚠"
+                            statusDescription.textContent = `Waiting for network...`
+
+                            window.addEventListener("online", (e) => {
+                                nextChunk()
+                            }, { once: true })
+                        } else {
+                            handleChunkError()
+                        }
+                    }, 2000);
                 }
 
                 xhr.open("POST", "/upload-chunk")
                 xhr.send(formData)
             }
+            nextChunk()
 
             function handleChunkError() {
-                if (retryCount < MAX_RETRY) {
-                    const delay = 1000 * Math.pow(2, retryCount) + Math.random() * 500
-                    retryCount++
+                const delay = 1000 * Math.pow(2, retryCount) + Math.random() * 500
+                retryCount++
 
-                    statusDiv.innerHTML = `
-                        <div class="status-icon status-error">⟳</div>
-                        <span>Retrying... (${retryCount}/${MAX_RETRY})</span>
-                    `
+                statusIcon.className = "status-icon status-error"
+                statusIcon.textContent = "⟳"
+                statusDescription.textContent = `Retrying... ${retryCount} · ${Math.ceil(delay / 1000)}s`
 
-                    setTimeout(nextChunk, delay)
-                } else {
-                    newLi.classList.remove('upload-card')
-                    statusDiv.innerHTML = `
-                        <div class="status-icon status-error">✗</div>
-                        <span>Upload failed after ${MAX_RETRY} attempts</span>
-                    `
-                    progressContainer.remove()
-                    cancelButton.remove()
-                }
+                setTimeout(nextChunk, delay)
             }
 
             cancelButton.addEventListener("click", (e) => {
@@ -802,17 +777,16 @@
                 }
 
                 newLi.classList.remove('upload-card')
-                statusDiv.innerHTML = `
-                    <div class="status-icon status-error">✗</div>
-                    <span>Upload canceled</span>
-                `
+
+                statusIcon.className = "status-icon status-error"
+                statusIcon.textContent = "✗"
+                statusDescription.textContent = "Upload canceled"
 
                 setTimeout(() => {
-                    newLi.remove()
+                    progressContainer.remove()
+                    cancelButton.remove()
                 }, 1000)
             })
-
-            nextChunk()
         }
 
         function handleFiles(files) {
@@ -831,10 +805,16 @@
 
                 const statusDiv = document.createElement("div")
                 statusDiv.className = "file-status"
-                statusDiv.innerHTML = `
-                    <div class="status-icon status-uploading">📤</div>
-                    <span>Preparing upload...</span>
-                `
+
+                const statusIcon = document.createElement("div")
+                statusIcon.className = "status-icon status-uploading"
+                statusIcon.textContent = "⬆"
+
+                const statusDescription = document.createElement("span")
+                statusDescription.textContent = "Preparing upload..."
+
+                statusDiv.appendChild(statusIcon)
+                statusDiv.appendChild(statusDescription)
 
                 newFileInfo.appendChild(newFileName)
                 newFileInfo.appendChild(statusDiv)
@@ -849,20 +829,35 @@
                 // Modern progress container
                 const progressContainer = document.createElement("div")
                 progressContainer.className = "progress-container"
-                progressContainer.innerHTML = `
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 0%"></div>
-                    </div>
-                    <div class="upload-stats">
-                        <span class="upload-percentage">0%</span>
-                        <span class="upload-speed">Initializing...</span>
-                    </div>
-                `
+
+                const progressBar = document.createElement("div")
+                progressBar.className = "progress-bar"
+
+                const progressFill = document.createElement("div")
+                progressFill.className = "progress-fill"
+                progressFill.style.width = "0%"
+                progressBar.appendChild(progressFill)
+
+                const uploadStats = document.createElement("div")
+                uploadStats.className = "upload-stats"
+
+                const uploadPercentage = document.createElement("span")
+                uploadPercentage.className = "upload-percentage"
+                uploadPercentage.textContent = "0%"
+                uploadStats.appendChild(uploadPercentage)
+
+                const uploadSpeed = document.createElement("span")
+                uploadSpeed.className = "upload-speed"
+                uploadSpeed.textContent = "Initializing..."
+                uploadStats.appendChild(uploadSpeed)
+
+                progressContainer.appendChild(progressBar)
+                progressContainer.appendChild(uploadStats)
 
                 newLi.appendChild(progressContainer)
                 fileList.appendChild(newLi)
 
-                uploadFile(file, progressContainer, statusDiv, cancelButton, newLi)
+                uploadFile(file, statusDiv, statusIcon, statusDescription, progressContainer, progressFill, uploadPercentage, uploadSpeed, cancelButton, newLi)
             }
         }
 
