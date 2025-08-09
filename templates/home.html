@@ -143,6 +143,137 @@
             e.target.value = ""
         })
 
+        let isOffline = !navigator.onLine
+        window.addEventListener("offline", () => {
+            isOffline = true
+        })
+        window.addEventListener("online", () => {
+            isOffline = false
+        })
+
+        function uploadFile(file, progressBar, timeLeftDiv, cancelButton, newLi) {
+            const CHUNK_SIZE = 10 * 1024 * 1024
+
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+            const fileId = crypto.randomUUID()
+
+            let currentChunk = 0
+            let uploadedBytes = 0
+            let retryCount = 0
+            const MAX_RETRY = 5
+
+            const startTime = Date.now()
+            let abortController = null
+
+            function nextChunk() {
+                if (isOffline) {
+                    setTimeout(nextChunk, 1000)
+                    return
+                }
+
+                const start = currentChunk * CHUNK_SIZE
+                const end = Math.min(start + CHUNK_SIZE, file.size)
+                const chunk = file.slice(start, end)
+
+                const formData = new FormData()
+                formData.append("chunk", chunk)
+                formData.append("fileId", fileId)
+                formData.append("fileName", file.name)
+                formData.append("chunkIndex", currentChunk)
+                formData.append("totalChunks", totalChunks)
+
+                const xhr = new XMLHttpRequest()
+                abortController = xhr
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = ((uploadedBytes + e.loaded) / file.size) * 100
+                        progressBar.value = percent
+
+                        const elapsed = (Date.now() - startTime) / 1000
+                        const speed = (uploadedBytes + e.loaded) / elapsed
+                        const remaining = file.size - (uploadedBytes + e.loaded)
+                        const timeLeft = remaining / speed
+
+                        if (timeLeft >= 0 && isFinite(timeLeft)) {
+                            const hours = Math.floor(timeLeft / 3600)
+                            const minutes = Math.floor((timeLeft % 3600) / 60)
+                            const seconds = Math.floor(timeLeft % 60)
+
+                            const padded = (num) => String(num).padStart(2, '0')
+                            const formated = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
+
+                            timeLeftDiv.textContent = formated
+                        }
+                    }
+                }
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        uploadedBytes += chunk.size
+                        currentChunk++
+                        if (currentChunk < totalChunks) {
+                            nextChunk()
+                        } else {
+                            const newDownBtn = document.createElement("button")
+                            newDownBtn.textContent = "DOWNLOAD"
+                            newDownBtn.className = "download-btn"
+                            newDownBtn.setAttribute("file-id", fileId)
+
+                            const newCopytBtn = document.createElement("button")
+                            newCopytBtn.textContent = "COPY"
+                            newCopytBtn.className = "copy-btn"
+                            newCopytBtn.setAttribute("file-id", fileId)
+
+                            newLi.appendChild(newDownBtn)
+                            newLi.appendChild(newCopytBtn)
+
+                            progressBar.remove()
+                            timeLeftDiv.remove()
+                            cancelButton.remove()
+                        }
+                    } else {
+                        handleChunkError()
+                    }
+                }
+
+                xhr.onerror = () => {
+                    handleChunkError()
+                }
+
+                xhr.open("POST", "/upload-chunk")
+                xhr.send(formData)
+            }
+
+            function handleChunkError() {
+                if (retryCount < MAX_RETRY) {
+                    const delay = 1000 * Math.pow(2, retryCount) + Math.random() * 500
+                    retryCount++
+                    setTimeout(nextChunk, delay)
+                } else {
+                    timeLeftDiv.textContent = "Error"
+                    progressBar.remove()
+                    cancelButton.remove()
+                }
+            }
+
+            cancelButton.addEventListener("click", (e) => {
+                if (abortController) {
+                    abortController.abort()
+                }
+
+                progressBar.style.backgroundColor = "grey"
+                timeLeftDiv.textContent = "Canceled"
+
+                setTimeout(() => {
+                    cancelButton.remove()
+                    progressBar.remove()
+                }, 1000)
+            })
+
+            nextChunk()
+        }
+
         function handleFiles(files) {
             for (const file of files) {
                 const fileList = document.querySelector(".file-list")
@@ -175,71 +306,7 @@
 
                 fileList.appendChild(newLi)
 
-                const formData = new FormData()
-                formData.append("f", file)
-
-                const xhr = new XMLHttpRequest()
-                xhr.open("POST", "/file")
-
-                const startTime = Date.now()
-                cancelButton.addEventListener("click", (e) => {
-                    xhr.abort()
-                    newLi.remove()
-                })
-
-                xhr.upload.addEventListener("progress", (e) => {
-                    if (e.lengthComputable) {
-                        const percent = (e.loaded / e.total) * 100
-                        progressBar.value = percent
-
-                        const elapsedTime = (Date.now() - startTime) / 1000
-                        const uploadSpeed = e.loaded / elapsedTime
-                        const remainingBytes = e.total - e.loaded
-                        const timeLeft = remainingBytes / uploadSpeed
-
-                        if (timeLeft >= 0 && isFinite(timeLeft)) {
-                            const hours = Math.floor(timeLeft / 3600)
-                            const minutes = Math.floor((timeLeft % 3600) / 60)
-                            const seconds = Math.floor(timeLeft % 60)
-
-                            const padded = (num) => String(num).padStart(2, '0')
-                            const formated = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
-
-                            timeLeftDiv.textContent = formated
-                        }
-                    }
-                })
-
-                xhr.onload = () => {
-                    if (xhr.status === 201) {
-                        const data = JSON.parse(xhr.responseText)
-
-                        const newDownBtn = document.createElement("button")
-                        newDownBtn.textContent = "DOWNLOAD"
-                        newDownBtn.className = "download-btn"
-                        newDownBtn.setAttribute("file-id", data.id)
-
-                        const newCopytBtn = document.createElement("button")
-                        newCopytBtn.textContent = "COPY"
-                        newCopytBtn.className = "copy-btn"
-                        newCopytBtn.setAttribute("file-id", data.id)
-
-                        newLi.appendChild(newDownBtn)
-                        newLi.appendChild(newCopytBtn)
-
-                        progressBar.remove()
-                        timeLeftDiv.remove()
-                        cancelButton.remove()
-                    } else {
-                        console.error("upload failed")
-                    }
-                }
-
-                xhr.onerror = () => {
-                    console.error("upload error")
-                }
-
-                xhr.send(formData)
+                uploadFile(file, progressBar, timeLeftDiv, cancelButton, newLi)
             }
         }
 
@@ -249,6 +316,10 @@
                 window.location.href = link
             }
             else if (e.target.classList.contains("copy-btn")) {
+                e.target.textContent = "COPIED"
+                setTimeout(() => {
+                    e.target.textContent = "COPY"
+                }, 1000);
                 navigator.clipboard.writeText(link)
             }
         })
