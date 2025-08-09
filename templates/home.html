@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>transfer</title>
+    <title>Transfer</title>
+    <link rel="shortcut icon" href="/static/img/SB.svg" type="image/x-icon">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
@@ -546,6 +547,11 @@
                 transform: rotate(360deg);
             }
         }
+
+        .author {
+            text-decoration: none;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 
@@ -553,13 +559,14 @@
     <div class="container">
         <div class="header">
             <h1>Transfer</h1>
-            <p>Fast & secure files sharing</p>
+            <a class="author" href="https://github.com/vinhngph" target="_blank" rel="noopener">&copy; Nguyễn Phúc
+                Vinh</a>
         </div>
 
         <div class="drop-area" id="drop-area">
             <span class="drop-icon">📁</span>
             <div class="drop-text">Click or drag files here</div>
-            <div class="drop-subtext">Supports multiple files • Unlimited file's size</div>
+            <div class="drop-subtext">All • Unlimited • Auto-remove</div>
             <input type="file" name="f" id="files-input" multiple>
         </div>
 
