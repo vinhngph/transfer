@@ -7,111 +7,584 @@
     <title>transfer</title>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+        :root {
+            --primary: #00ff73;
+            --primary-dark: #00cc5c;
+            --secondary: #00ffea;
+            --secondary-dark: #00d4c7;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --error: #ff4757;
+            --success: var(--primary);
+            --warning: #ffa502;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #121212;
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 0 20px;
+            font-family: Roboto;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 115, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 255, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 255, 115, 0.05) 0%, transparent 50%);
+            z-index: -1;
+            animation: backgroundShift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes backgroundShift {
+            0% {
+                transform: translateX(-5px) translateY(-5px);
+            }
+
+            100% {
+                transform: translateX(5px) translateY(5px);
+            }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        @keyframes glow {
+            from {
+                filter: drop-shadow(0 0 5px rgba(0, 255, 115, 0.3));
+            }
+
+            to {
+                filter: drop-shadow(0 0 20px rgba(0, 255, 115, 0.6));
+            }
         }
 
         .drop-area {
-            border: 2px dashed #00ff73;
-            border-radius: 6px;
-            padding: 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px dashed var(--primary);
+            border-radius: 20px;
+            padding: 60px 40px;
             text-align: center;
-            color: #00ff73;
+            color: var(--primary);
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
         }
 
-        .drop-area:hover {
-            background: #e9f5ff49;
+        .drop-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 115, 0.1), transparent);
+            transition: left 0.6s;
         }
 
+        .drop-area:hover::before {
+            left: 100%;
+        }
+
+        .drop-area:hover,
         .drop-area.dragover {
-            background: #e9f5ff49;
+            border-color: var(--secondary);
+            transform: translateY(-5px);
+            box-shadow:
+                0 20px 40px rgba(0, 255, 115, 0.2),
+                0 0 60px rgba(0, 255, 115, 0.1);
+        }
+
+        .drop-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .drop-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .drop-subtext {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 300;
         }
 
         input[type="file"] {
             display: none;
         }
 
-        .file-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 30px;
+        .files {
+            margin-top: 40px;
         }
 
-        .file-list li {
-            border: 1px solid #00ff73;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            padding: 10px;
+        .file-list {
+            list-style: none;
+            display: grid;
+            gap: 15px;
+        }
+
+        .file-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 255, 115, 0.05), rgba(0, 255, 234, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .file-item:hover::before {
+            opacity: 1;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         .file-info {
-            color: #fff;
             flex: 1;
-            margin-right: 10px;
+            margin-right: 20px;
+            min-width: 200px;
+            position: relative;
+            z-index: 1;
         }
 
-        progress {
-            width: 100%;
-            height: 8px;
-            margin-top: 5px;
+        .file-name {
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .file-status {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
         }
 
         button {
-            margin-left: 5px;
-            padding: 6px 10px;
-            font-size: 14px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            background: #00ffea;
-            color: #000000;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        button:hover:not(:disabled) {
-            background: #0056b3;
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
         }
 
-        button:disabled {
-            background: #999;
-            cursor: not-allowed;
+        button:hover::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--bg-primary);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 115, 0.4);
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            color: var(--bg-primary);
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 234, 0.4);
         }
 
         .cancel-btn {
-            background-color: red;
+            background: linear-gradient(135deg, var(--error), #e74c3c);
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        button:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-container {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.4),
+                    transparent);
+            animation: progressShimmer 2s infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .upload-card {
+            background: linear-gradient(135deg,
+                    rgba(0, 255, 115, 0.1),
+                    rgba(0, 255, 234, 0.1));
+            border: 1px solid rgba(0, 255, 115, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(0, 255, 115, 0.1),
+                    transparent);
+            animation: cardShimmer 3s infinite;
+        }
+
+        @keyframes cardShimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .status-uploading {
+            background: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        .status-complete {
+            background: var(--success);
+        }
+
+        .status-error {
+            background: var(--error);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+
+        .upload-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 0.8rem;
+        }
+
+        .upload-percentage {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .upload-speed {
+            color: var(--text-secondary);
+        }
+
+        .upload-animation {
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-checkmark {
+            color: var(--success);
+            animation: checkmarkPop 0.5s ease-out;
+        }
+
+        @keyframes checkmarkPop {
+            0% {
+                transform: scale(0);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .drop-area {
+                padding: 40px 20px;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .file-info {
+                margin-right: 0;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .file-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-secondary);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="drop-area" id="drop-area">
-        Click or drag files here
-        <input type="file" name="f" id="files-input" multiple>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>Transfer</h1>
+            <p>Fast & secure files sharing</p>
+        </div>
 
-    <div class="files">
-        <ul class="file-list">
-            {% if files%}
-            {% for file in files %}
-            <li>
-                <div class="file-info">
-                    <div>{{ file.name }}</div>
-                </div>
-                <button class="download-btn" file-id="{{ file.id }}">DOWNLOAD</button>
-                <button class="copy-btn" file-id="{{ file.id }}">COPY</button>
-            </li>
-            {% endfor %}
-            {% endif%}
-        </ul>
+        <div class="drop-area" id="drop-area">
+            <span class="drop-icon">📁</span>
+            <div class="drop-text">Click or drag files here</div>
+            <div class="drop-subtext">Supports multiple files • Unlimited file's size</div>
+            <input type="file" name="f" id="files-input" multiple>
+        </div>
+
+        <div class="files">
+            <ul class="file-list">
+                {% if files%}
+                {% for file in files %}
+                <li class="file-item">
+                    <div class="file-info">
+                        <div class="file-name">{{ file.name }}</div>
+                        <div class="file-status">Ready for download</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="download-btn" file-id="{{ file.id }}">
+                            <span>📥</span> DOWNLOAD
+                        </button>
+                        <button class="copy-btn" file-id="{{ file.id }}">
+                            <span>🔗</span> COPY
+                        </button>
+                    </div>
+                </li>
+                {% endfor %}
+                {% endif%}
+            </ul>
+        </div>
     </div>
 
     <script>
@@ -133,7 +606,7 @@
 
         dropArea.addEventListener("drop", (e) => {
             e.preventDefault()
-            dropArea.classList.remove("dropover")
+            dropArea.classList.remove("dragover")
             const files = e.dataTransfer.files
             handleFiles(files)
         })
@@ -151,7 +624,15 @@
             isOffline = false
         })
 
-        function uploadFile(file, progressBar, timeLeftDiv, cancelButton, newLi) {
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes'
+            const k = 1024
+            const sizes = ['Bytes', 'KB', 'MB', 'GB']
+            const i = Math.floor(Math.log(bytes) / Math.log(k))
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+        }
+
+        function uploadFile(file, progressContainer, statusDiv, cancelButton, newLi) {
             const CHUNK_SIZE = 10 * 1024 * 1024
 
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
@@ -165,8 +646,22 @@
             const startTime = Date.now()
             let abortController = null
 
+            // Add upload card styling
+            newLi.classList.add('upload-card')
+
+            // Create modern progress elements
+            const progressBar = progressContainer.querySelector('.progress-bar')
+            const progressFill = progressBar.querySelector('.progress-fill')
+            const uploadStats = progressContainer.querySelector('.upload-stats')
+            const percentageSpan = uploadStats.querySelector('.upload-percentage')
+            const speedSpan = uploadStats.querySelector('.upload-speed')
+
             function nextChunk() {
                 if (isOffline) {
+                    statusDiv.innerHTML = `
+                        <div class="status-icon status-error">⚠</div>
+                        <span>Connection lost - Reconnecting...</span>
+                    `
                     setTimeout(nextChunk, 1000)
                     return
                 }
@@ -188,7 +683,8 @@
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) {
                         const percent = ((uploadedBytes + e.loaded) / file.size) * 100
-                        progressBar.value = percent
+                        progressFill.style.width = percent + '%'
+                        percentageSpan.textContent = Math.round(percent) + '%'
 
                         const elapsed = (Date.now() - startTime) / 1000
                         const speed = (uploadedBytes + e.loaded) / elapsed
@@ -201,9 +697,15 @@
                             const seconds = Math.floor(timeLeft % 60)
 
                             const padded = (num) => String(num).padStart(2, '0')
-                            const formated = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
+                            const formatted = hours > 0 ? `${padded(hours)}:${padded(minutes)}:${padded(seconds)}` : `${padded(minutes)}:${padded(seconds)}`
 
-                            timeLeftDiv.textContent = formated
+                            const speedFormatted = formatFileSize(speed) + '/s'
+                            speedSpan.textContent = `${speedFormatted} • ${formatted} left`
+
+                            statusDiv.innerHTML = `
+                                <div class="status-icon status-uploading">⬆</div>
+                                <span style="color: white">Uploading chunk ${currentChunk + 1} of ${totalChunks}</span>
+                            `
                         }
                     }
                 }
@@ -215,22 +717,42 @@
                         if (currentChunk < totalChunks) {
                             nextChunk()
                         } else {
+                            // Upload complete
+                            newLi.classList.remove('upload-card')
+
+                            const actionsDiv = document.createElement("div")
+                            actionsDiv.className = "file-actions"
+
                             const newDownBtn = document.createElement("button")
-                            newDownBtn.textContent = "DOWNLOAD"
+                            newDownBtn.innerHTML = '<span>📥</span> DOWNLOAD'
                             newDownBtn.className = "download-btn"
                             newDownBtn.setAttribute("file-id", fileId)
 
-                            const newCopytBtn = document.createElement("button")
-                            newCopytBtn.textContent = "COPY"
-                            newCopytBtn.className = "copy-btn"
-                            newCopytBtn.setAttribute("file-id", fileId)
+                            const newCopyBtn = document.createElement("button")
+                            newCopyBtn.innerHTML = '<span>🔗</span> COPY'
+                            newCopyBtn.className = "copy-btn"
+                            newCopyBtn.setAttribute("file-id", fileId)
 
-                            newLi.appendChild(newDownBtn)
-                            newLi.appendChild(newCopytBtn)
+                            actionsDiv.appendChild(newDownBtn)
+                            actionsDiv.appendChild(newCopyBtn)
 
-                            progressBar.remove()
-                            timeLeftDiv.remove()
-                            cancelButton.remove()
+                            // Update status to complete
+                            statusDiv.innerHTML = `
+                                <div class="status-icon status-complete">✓</div>
+                                <span>Upload complete • Ready for download</span>
+                            `
+
+                            // Animate completion
+                            progressFill.style.width = '100%'
+                            percentageSpan.textContent = '100%'
+                            speedSpan.textContent = 'Complete'
+
+                            setTimeout(() => {
+                                progressContainer.remove()
+                                cancelButton.remove()
+                                statusDiv.textContent = 'Ready for download'
+                                newLi.appendChild(actionsDiv)
+                            }, 2000)
                         }
                     } else {
                         handleChunkError()
@@ -249,10 +771,20 @@
                 if (retryCount < MAX_RETRY) {
                     const delay = 1000 * Math.pow(2, retryCount) + Math.random() * 500
                     retryCount++
+
+                    statusDiv.innerHTML = `
+                        <div class="status-icon status-error">⟳</div>
+                        <span>Retrying... (${retryCount}/${MAX_RETRY})</span>
+                    `
+
                     setTimeout(nextChunk, delay)
                 } else {
-                    timeLeftDiv.textContent = "Error"
-                    progressBar.remove()
+                    newLi.classList.remove('upload-card')
+                    statusDiv.innerHTML = `
+                        <div class="status-icon status-error">✗</div>
+                        <span>Upload failed after ${MAX_RETRY} attempts</span>
+                    `
+                    progressContainer.remove()
                     cancelButton.remove()
                 }
             }
@@ -262,12 +794,14 @@
                     abortController.abort()
                 }
 
-                progressBar.style.backgroundColor = "grey"
-                timeLeftDiv.textContent = "Canceled"
+                newLi.classList.remove('upload-card')
+                statusDiv.innerHTML = `
+                    <div class="status-icon status-error">✗</div>
+                    <span>Upload canceled</span>
+                `
 
                 setTimeout(() => {
-                    cancelButton.remove()
-                    progressBar.remove()
+                    newLi.remove()
                 }, 1000)
             })
 
@@ -278,48 +812,67 @@
             for (const file of files) {
                 const fileList = document.querySelector(".file-list")
 
+                const newLi = document.createElement("li")
+                newLi.className = "file-item upload-animation"
+
                 const newFileInfo = document.createElement("div")
                 newFileInfo.className = "file-info"
 
                 const newFileName = document.createElement("div")
+                newFileName.className = "file-name"
                 newFileName.textContent = file.name
 
-                const timeLeftDiv = document.createElement("div")
-                timeLeftDiv.className = "time-estimating"
-                timeLeftDiv.textContent = "Estimating..."
+                const statusDiv = document.createElement("div")
+                statusDiv.className = "file-status"
+                statusDiv.innerHTML = `
+                    <div class="status-icon status-uploading">📤</div>
+                    <span>Preparing upload...</span>
+                `
 
                 newFileInfo.appendChild(newFileName)
-                newFileInfo.appendChild(timeLeftDiv)
-
-                const progressBar = document.createElement("progress")
-                progressBar.value = 0
-                progressBar.max = 100
+                newFileInfo.appendChild(statusDiv)
 
                 const cancelButton = document.createElement("button")
                 cancelButton.className = "cancel-btn"
-                cancelButton.textContent = "CANCEL"
+                cancelButton.innerHTML = '<span>❌</span> CANCEL'
 
-                const newLi = document.createElement("li")
                 newLi.appendChild(newFileInfo)
                 newLi.appendChild(cancelButton)
-                newLi.appendChild(progressBar)
 
+                // Modern progress container
+                const progressContainer = document.createElement("div")
+                progressContainer.className = "progress-container"
+                progressContainer.innerHTML = `
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="upload-stats">
+                        <span class="upload-percentage">0%</span>
+                        <span class="upload-speed">Initializing...</span>
+                    </div>
+                `
+
+                newLi.appendChild(progressContainer)
                 fileList.appendChild(newLi)
 
-                uploadFile(file, progressBar, timeLeftDiv, cancelButton, newLi)
+                uploadFile(file, progressContainer, statusDiv, cancelButton, newLi)
             }
         }
 
         document.querySelector(".file-list").addEventListener("click", (e) => {
             const link = window.location.origin + "/file?id=" + e.target.getAttribute("file-id")
-            if (e.target.classList.contains("download-btn")) {
+
+            if (e.target.classList.contains("download-btn") || e.target.parentElement.classList.contains("download-btn")) {
+                const btn = e.target.classList.contains("download-btn") ? e.target : e.target.parentElement
                 window.location.href = link
             }
-            else if (e.target.classList.contains("copy-btn")) {
-                e.target.textContent = "COPIED"
+            else if (e.target.classList.contains("copy-btn") || e.target.parentElement.classList.contains("copy-btn")) {
+                const btn = e.target.classList.contains("copy-btn") ? e.target : e.target.parentElement
+                const originalContent = btn.innerHTML
+                btn.innerHTML = '<span>✅</span> COPIED'
                 setTimeout(() => {
-                    e.target.textContent = "COPY"
-                }, 1000);
+                    btn.innerHTML = originalContent
+                }, 1500)
                 navigator.clipboard.writeText(link)
             }
         })
