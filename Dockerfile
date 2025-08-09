@@ -2,7 +2,7 @@ FROM alpine:3.22.1
 
 WORKDIR /application
 
-RUN apk update && apk add --no-cache python3 py3-pip sqlite bash
+RUN apk update && apk upgrade && apk add --no-cache python3 py3-pip sqlite bash
 RUN python3 -m venv venv
 
 COPY . .

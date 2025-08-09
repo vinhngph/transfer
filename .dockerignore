@@ -1,2 +1,5 @@
 database.db
 storage/
+temp_chunks/
+__pycache__
+venv
